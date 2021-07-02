@@ -1,12 +1,20 @@
 // Third Party Libraries Imports
+import { Pool } from "https://deno.land/x/postgres@v0.11.3/mod.ts";
 import { connect, Redis } from "https://deno.land/x/redis@v0.22.2/mod.ts";
+
+import { create } from "./queries/create.ts";
 
 import { RunServerPropsType } from "./types.ts";
 import { routeExtract } from "./utils/route_extract.ts";
 import { parseRequestBody } from "./utils/parse_request_body.ts";
 
 export const run = async (props: RunServerPropsType) => {
-  // Connect Redis
+  // Connect to Postgres
+  const { connectionParams, maxsize, lazy } = props.connections.postgres;
+  const pool = new Pool(connectionParams, maxsize, lazy);
+  const client = await pool.connect();
+
+  // Connect to Redis
   let redis: Redis | null = null;
   if (props.connections.redis) {
     redis = await connect(props.connections.redis);
@@ -44,6 +52,30 @@ export const run = async (props: RunServerPropsType) => {
               break;
             } else {
               switch (extract.operation) {
+                case "create": {
+                  try {
+                    const result = await create({
+                      request,
+                      reqBody,
+                      client,
+                      table: extract.table,
+                    });
+                    request.respond({
+                      headers: new Headers({
+                        "Content-Type": "application/json",
+                      }),
+                      body: JSON.stringify({ data: result }),
+                    });
+                  } catch (error) {
+                    request.respond({
+                      headers: new Headers({
+                        "Content-Type": "application/json",
+                      }),
+                      body: JSON.stringify({ error }),
+                    });
+                  }
+                  break;
+                }
                 case "read":
                   // Check if there is a Redis connection and it's a Cached Request.
                   if (redis && reqBody.cache) {
@@ -60,7 +92,6 @@ export const run = async (props: RunServerPropsType) => {
                     }
                   }
               }
-              break;
             }
           } else {
             // Respond with Method Not Allowed Error when the Operation is not allowed on the Table
