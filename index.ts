@@ -1,7 +1,17 @@
+// Third Party Libraries Imports
+import { connect, Redis } from "https://deno.land/x/redis@v0.22.2/mod.ts";
+
 import { RunServerPropsType } from "./types.ts";
 import { routeExtract } from "./utils/route_extract.ts";
+import { parseRequestBody } from "./utils/parse_request_body.ts";
 
 export const run = async (props: RunServerPropsType) => {
+  // Connect Redis
+  let redis: Redis | null = null;
+  if (props.connections.redis) {
+    redis = await connect(props.connections.redis);
+  }
+
   for await (const request of props.server) {
     // Check for Request Method
     if (request.method === "POST") {
@@ -22,7 +32,36 @@ export const run = async (props: RunServerPropsType) => {
             table.operations[extract.operation] &&
             table.operations[extract.operation].allowed
           ) {
-            request.respond({ body: "Thank You" });
+            // Parse Request Body
+            const reqBody = await parseRequestBody({ request });
+
+            if (!reqBody) {
+              // Respond with Bad Request Error when there is no Request Body
+              request.respond({
+                status: 400,
+                body: "The Request is missing Body",
+              });
+              break;
+            } else {
+              switch (extract.operation) {
+                case "read":
+                  // Check if there is a Redis connection and it's a Cached Request.
+                  if (redis && reqBody.cache) {
+                    const redisRes = await redis.get(reqBody.cache.key);
+                    // Respond if there is a response from Redis
+                    if (redisRes) {
+                      request.respond({
+                        headers: new Headers({
+                          "Content-Type": "application/json",
+                        }),
+                        body: JSON.stringify({ data: redisRes.toString() }),
+                      });
+                      break;
+                    }
+                  }
+              }
+              break;
+            }
           } else {
             // Respond with Method Not Allowed Error when the Operation is not allowed on the Table
             request.respond({
