@@ -5,6 +5,7 @@ import {
 
 import { ConnectionParams } from "https://deno.land/x/postgres@v0.11.3/connection/connection_params.ts";
 import { PoolClient } from "https://deno.land/x/postgres@v0.11.3/client.ts";
+import { QueryArrayResult } from "https://deno.land/x/postgres@v0.11.3/query/query.ts";
 import { RedisConnectOptions } from "https://deno.land/x/redis@v0.22.2/mod.ts";
 
 export interface RunServerPropsType {
@@ -28,7 +29,21 @@ interface CreateQueryProps {
   returning?: Array<string>;
 }
 
-export interface RequestBodyType extends CreateQueryProps {
+interface UpdateQueryProps {
+  // update query props
+  updateData?: Record<string, string | number>;
+  where?: Array<WhereType>;
+}
+
+interface WhereType {
+  field: string;
+  operator: string;
+  input: string | number;
+  // boolean condition like OR and AND
+  nextCondition?: string;
+}
+
+export interface RequestBodyType extends CreateQueryProps, UpdateQueryProps {
   cache?: {
     key: string;
     expiration: number;
@@ -73,4 +88,9 @@ export interface QueryPropsType {
   reqBody: RequestBodyType;
   table: string;
   client: PoolClient;
+}
+
+export interface QueryRespondPropsType
+  extends QueryPropsType, RouteExtractReturnType {
+  queryFn: (props: QueryPropsType) => Promise<QueryArrayResult<undefined[]>>;
 }

@@ -3,10 +3,12 @@ import { Pool } from "https://deno.land/x/postgres@v0.11.3/mod.ts";
 import { connect, Redis } from "https://deno.land/x/redis@v0.22.2/mod.ts";
 
 import { create } from "./queries/create.ts";
+import { update } from "./queries/update.ts";
 
 import { RunServerPropsType } from "./types.ts";
 import { routeExtract } from "./utils/route_extract.ts";
 import { parseRequestBody } from "./utils/parse_request_body.ts";
+import { queryRespond } from "./utils/query_respond.ts";
 
 export const run = async (props: RunServerPropsType) => {
   // Connect to Postgres
@@ -53,30 +55,16 @@ export const run = async (props: RunServerPropsType) => {
             } else {
               switch (extract.operation) {
                 case "create": {
-                  try {
-                    const result = await create({
-                      request,
-                      reqBody,
-                      client,
-                      table: extract.table,
-                    });
-                    request.respond({
-                      headers: new Headers({
-                        "Content-Type": "application/json",
-                      }),
-                      body: JSON.stringify({ data: result }),
-                    });
-                  } catch (error) {
-                    request.respond({
-                      headers: new Headers({
-                        "Content-Type": "application/json",
-                      }),
-                      body: JSON.stringify({ error }),
-                    });
-                  }
+                  await queryRespond({
+                    queryFn: create,
+                    client,
+                    reqBody,
+                    request,
+                    ...extract,
+                  });
                   break;
                 }
-                case "read":
+                case "read": {
                   // Check if there is a Redis connection and it's a Cached Request.
                   if (redis && reqBody.cache) {
                     const redisRes = await redis.get(reqBody.cache.key);
@@ -88,9 +76,20 @@ export const run = async (props: RunServerPropsType) => {
                         }),
                         body: JSON.stringify({ data: redisRes.toString() }),
                       });
-                      break;
                     }
                   }
+                  break;
+                }
+                case "update": {
+                  await queryRespond({
+                    queryFn: update,
+                    client,
+                    reqBody,
+                    request,
+                    ...extract,
+                  });
+                  break;
+                }
               }
             }
           } else {
