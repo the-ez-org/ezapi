@@ -4,6 +4,7 @@ import { connect, Redis } from "https://deno.land/x/redis@v0.22.2/mod.ts";
 
 import { create } from "./queries/create.ts";
 import { update } from "./queries/update.ts";
+import { deleteQuery } from "./queries/delete.ts";
 
 import { RunServerPropsType } from "./types.ts";
 import { routeExtract } from "./utils/route_extract.ts";
@@ -83,6 +84,16 @@ export const run = async (props: RunServerPropsType) => {
                 case "update": {
                   await queryRespond({
                     queryFn: update,
+                    client,
+                    reqBody,
+                    request,
+                    ...extract,
+                  });
+                  break;
+                }
+                case "delete": {
+                  await queryRespond({
+                    queryFn: deleteQuery,
                     client,
                     reqBody,
                     request,
