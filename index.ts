@@ -88,7 +88,7 @@ export const run = async (props: RunServerPropsType) => {
                         });
                         sendResponse({ request, data: postgresResponse });
                         // Set the cache
-                        const res = await redis.executor.exec(
+                        await redis.executor.exec(
                           "SET",
                           reqBody.cache.key,
                           `${postgresResponse}`,
