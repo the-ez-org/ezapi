@@ -1,3 +1,4 @@
+import { sendResponse } from "./send_response.ts";
 import { QueryRespondPropsType } from "../types.ts";
 
 export const queryRespond = async (props: QueryRespondPropsType) => {
@@ -10,18 +11,8 @@ export const queryRespond = async (props: QueryRespondPropsType) => {
       client,
       table,
     });
-    request.respond({
-      headers: new Headers({
-        "Content-Type": "application/json",
-      }),
-      body: JSON.stringify({ data: result }),
-    });
+    sendResponse({ request, data: result });
   } catch (error) {
-    request.respond({
-      headers: new Headers({
-        "Content-Type": "application/json",
-      }),
-      body: JSON.stringify({ error }),
-    });
+    sendResponse({ request, error: { message: error } });
   }
 };

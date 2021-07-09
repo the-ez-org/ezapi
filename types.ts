@@ -31,7 +31,7 @@ interface CreateQueryProps {
 
 interface UpdateQueryProps {
   // update query props
-  updateData?: Record<string, string | number>;
+  new?: Record<string, string | number>;
   where?: Array<WhereType>;
 }
 
@@ -43,7 +43,33 @@ interface WhereType {
   nextCondition?: string;
 }
 
-export interface RequestBodyType extends CreateQueryProps, UpdateQueryProps {
+interface ReadQueryProps {
+  distinct?: boolean;
+  join?: {
+    table: string;
+    cross?: boolean;
+    // Default join is inner;
+    outer?: {
+      // left, right or full
+      type: string;
+    };
+    natural?: boolean;
+    on?: string;
+    using?: Array<string>;
+  };
+  group?: Array<string>;
+  having?: Array<WhereType>;
+  order?: Array<{
+    by: string;
+    desc?: boolean;
+    nulls?: string;
+  }>;
+  limit?: number;
+  offset?: number;
+}
+
+export interface RequestBodyType
+  extends CreateQueryProps, UpdateQueryProps, ReadQueryProps {
   cache?: {
     key: string;
     expiration: number;
@@ -93,4 +119,24 @@ export interface QueryPropsType {
 export interface QueryRespondPropsType
   extends QueryPropsType, RouteExtractReturnType {
   queryFn: (props: QueryPropsType) => Promise<QueryArrayResult<undefined[]>>;
+}
+
+export interface SendResponsePropsType {
+  request: ServerRequest;
+  data?: unknown;
+  error?: {
+    status?: number;
+    message: string;
+  };
+}
+
+export interface WhereProps extends WhereReturn {
+  reqBody: RequestBodyType;
+  name: string;
+}
+
+export interface WhereReturn {
+  query: string;
+  param: number;
+  args: Array<string | number>;
 }
