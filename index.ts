@@ -41,10 +41,11 @@ export const run = async (props: RunServerPropsType) => {
         // Check if the Table exists in the Config
         if (table) {
           // Check if the Operation is allowed on the Table
-          if (
-            table.operations[extract.operation] &&
-            table.operations[extract.operation].allowed
-          ) {
+          const operation = table.operations[extract.operation];
+          if (operation && operation.allowed) {
+            // Execute onRequest
+            if (operation.onRequest) operation.onRequest();
+
             // Parse Request Body
             try {
               const reqBody = await parseRequestBody({ request });
@@ -77,7 +78,7 @@ export const run = async (props: RunServerPropsType) => {
                       const redisRes = await redis.get(reqBody.cache.key);
                       // Respond if there is a response from Redis
                       if (redisRes) {
-                        sendResponse({ request, data: redis.toString() });
+                        sendResponse({ request, data: redisRes });
                       } else {
                         // Else get data from Postgres
                         const postgresResponse = await read({

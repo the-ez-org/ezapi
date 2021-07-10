@@ -22,6 +22,15 @@ export interface RunServerPropsType {
   tables: Record<string, Table>;
 }
 
+export interface Table {
+  operations: Record<string, Operation>;
+}
+
+export interface Operation {
+  allowed: boolean;
+  onRequest?: () => void;
+}
+
 interface CreateQueryProps {
   // create query props
   fields?: Array<string>;
@@ -74,26 +83,6 @@ export interface RequestBodyType
     key: string;
     expiration: number;
   };
-}
-
-export interface Table {
-  operations: Operations;
-}
-
-interface OperationsKeys {
-  [key: string]: Operation;
-}
-
-export interface Operations extends OperationsKeys {
-  create: Operation;
-  read: Operation;
-  update: Operation;
-  delete: Operation;
-}
-
-export interface Operation {
-  allowed?: boolean;
-  onRequest?: () => void;
 }
 
 export interface RouteExtractPropsType {
